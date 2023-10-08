@@ -105,6 +105,9 @@ func GetConnFD(conn net.Conn) (uintptr, error) {
 		var name string
 	Outloop:
 		for {
+			if !obj.IsValid() {
+				break Outloop
+			}
 			t = obj.Type()
 			name = t.String()
 			kind = t.Kind()
@@ -126,6 +129,18 @@ func GetConnFD(conn net.Conn) (uintptr, error) {
 				case strings.Contains(name, "smux.Stream"):
 					s := obj.Elem()
 					obj = s.FieldByName("sess")
+				case strings.Contains(name, "quic.quicConn"):
+					s := obj.Elem()
+					obj = s.FieldByName("Stream")
+				case strings.Contains(name, "quic.stream"):
+					s := obj.Elem()
+					obj = s.FieldByName("sender")
+				case strings.Contains(name, "quic.sconn"):
+					s := obj.Elem()
+					obj = s.FieldByName("rawConn")
+				case strings.Contains(name, "quic.oobConn"):
+					s := obj.Elem()
+					obj = s.FieldByName("OOBCapablePacketConn")
 				default:
 					obj = obj.Elem()
 				}
@@ -140,6 +155,8 @@ func GetConnFD(conn net.Conn) (uintptr, error) {
 						return false
 					}
 				})
+			case reflect.Invalid:
+				break Outloop
 			default:
 				break Outloop
 			}
